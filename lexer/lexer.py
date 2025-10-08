@@ -25,121 +25,74 @@ class Token:
         return f"Token({self.type.name}, '{self.value}', {self.line}, {self.column})"
 
 class ApolloLexer:
-    def __init__(self):
+    def __init__(self, afd=None):
         self.keywords = {'algoritmo', 'fim_algoritmo', 'se', 'senao', 'enquanto',
                          'para', 'faca', 'escreva', 'leia_numero', 'leia_texto',
                          'verdadeiro', 'falso', 'inteiro', 'real', 'texto', 'logico'}
         self.operators = {'==', '!=', '<=', '>=', '<', '>', '=', '+', '-', '*', '/'}
         self.symbols = {'(', ')', ':', ','}
+        self.afd = afd
 
     def tokenize(self, source_code: str) -> list[Token]:
+        if self.afd is None:
+            raise Exception("AFD não fornecido para o analisador léxico.")
         tokens = []
         line = 1
         column = 1
         i = 0
-
         while i < len(source_code):
-            char = source_code[i]
-
-            if char.isspace():
+            estado = self.afd.estado_inicial
+            inicio = i
+            inicio_col = column
+            inicio_line = line
+            ultimo_final = None
+            ultimo_pos = i
+            while i < len(source_code):
+                char = source_code[i]
+                trans = self.afd.transicoes.get((estado, char))
+                if trans is None:
+                    break
+                estado = trans
+                i += 1
+                column += 1
                 if char == '\n':
                     line += 1
                     column = 1
+                if estado in self.afd.estados_finais:
+                    ultimo_final = estado
+                    ultimo_pos = i
+            if ultimo_final is not None:
+                lexema = source_code[inicio:ultimo_pos]
+                # Determinar tipo de token
+                if lexema in self.keywords:
+                    token_type = TokenType.KEYWORD
+                elif lexema in self.operators:
+                    token_type = TokenType.OPERATOR
+                elif lexema in self.symbols:
+                    token_type = TokenType.SYMBOL
+                elif re.match(r'^\d+$', lexema):
+                    token_type = TokenType.INTEGER
+                elif re.match(r'^\d+\.\d+$', lexema):
+                    token_type = TokenType.REAL
+                elif re.match(r'^".*"$', lexema):
+                    token_type = TokenType.STRING
+                elif re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', lexema):
+                    token_type = TokenType.IDENTIFIER
                 else:
-                    column += 1
-                i += 1
-                continue
-
-            if char == '#':
-                start = i
-                while i < len(source_code) and source_code[i] != '\n':
-                    i += 1
-                continue
-
-            if char == '"':
-                start_col = column
-                start_line = line
-                value = char
-                i += 1
-                column += 1
-                while i < len(source_code) and source_code[i] != '"':
-                    value += source_code[i]
+                    token_type = TokenType.INVALID
+                tokens.append(Token(token_type, lexema, inicio_line, inicio_col))
+                i = ultimo_pos
+            else:
+                if source_code[i].isspace():
                     if source_code[i] == '\n':
                         line += 1
                         column = 1
                     else:
                         column += 1
                     i += 1
-
-                if i < len(source_code) and source_code[i] == '"':
-                    value += '"'
-                    tokens.append(Token(TokenType.STRING, value, start_line, start_col))
-                    i += 1
-                    column += 1
-                else:
-                    tokens.append(Token(TokenType.INVALID, value, start_line, start_col))
-                continue
-
-            if i + 1 < len(source_code):
-                two_char_op = source_code[i:i+2]
-                if two_char_op in self.operators:
-                    tokens.append(Token(TokenType.OPERATOR, two_char_op, line, column))
-                    i += 2
-                    column += 2
                     continue
-            
-            if char in self.operators:
-                tokens.append(Token(TokenType.OPERATOR, char, line, column))
+                tokens.append(Token(TokenType.INVALID, source_code[i], line, column))
                 i += 1
                 column += 1
-                continue
-            
-            if char in self.symbols:
-                tokens.append(Token(TokenType.SYMBOL, char, line, column))
-                i += 1
-                column += 1
-                continue
-            
-            if char.isdigit() or (char in '+-' and i + 1 < len(source_code) and source_code[i+1].isdigit()):
-                start_col = column
-                value = char
-                i += 1
-                column += 1
-                while i < len(source_code) and source_code[i].isdigit():
-                    value += source_code[i]
-                    i += 1
-                    column += 1
-                
-                if i < len(source_code) and source_code[i] == '.':
-                    value += '.'
-                    i += 1
-                    column += 1
-                    while i < len(source_code) and source_code[i].isdigit():
-                        value += source_code[i]
-                        i += 1
-                        column += 1
-                    tokens.append(Token(TokenType.REAL, value, line, start_col))
-                else:
-                    tokens.append(Token(TokenType.INTEGER, value, line, start_col))
-                continue
-            
-            if char.isalpha() or char in 'áàâãéèêíìîóòôõúùûç_ÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ':
-                start_col = column
-                value = char
-                i += 1
-                column += 1
-                while i < len(source_code) and (source_code[i].isalnum() or source_code[i] in '_áàâãéèêíìîóòôõúùûçÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ'):
-                    value += source_code[i]
-                    i += 1
-                    column += 1
-                
-                token_type = TokenType.KEYWORD if value.lower() in self.keywords else TokenType.IDENTIFIER
-                tokens.append(Token(token_type, value, line, start_col))
-                continue
-
-            tokens.append(Token(TokenType.INVALID, char, line, column))
-            i += 1
-            column += 1
-
         tokens.append(Token(TokenType.EOF, "", line, column))
         return tokens
