@@ -13,16 +13,20 @@ Este projeto está sendo desenvolvido por uma equipe de 3 estudantes ao longo de
 
 ### Exemplo de Código
 
-algoritmo calculadora_simples
-escreva("Digite o primeiro número:")
-numero1 = leia_numero()
-
 escreva("Digite o segundo número:")
-numero2 = leia_numero()
-
 soma = numero1 + numero2
-escreva("A soma é:", soma)
 fim_algoritmo
+
+algoritmo calculadora_simples
+  escreva("Digite o primeiro número:")      # Solicita ao usuário o primeiro número
+  numero1 = leia_numero()                   # Lê o primeiro número
+
+  escreva("Digite o segundo número:")       # Solicita ao usuário o segundo número
+  numero2 = leia_numero()                   # Lê o segundo número
+
+  soma = numero1 + numero2                  # Calcula a soma dos dois números
+  escreva("A soma é:", soma)                # Exibe o resultado da soma
+fim_algoritmo                                 # Fim do programa
 
 
 ## Status do Projeto
