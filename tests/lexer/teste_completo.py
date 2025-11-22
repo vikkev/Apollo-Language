@@ -4,6 +4,9 @@ Teste completo e abrangente do analisador léxico Apollo.
 Verifica todas as funcionalidades implementadas após as melhorias.
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'lexer'))
 from apollo_lexer import ApolloLexer, TokenType
 
 def teste_strings():
@@ -29,9 +32,9 @@ def teste_strings():
         tokens_validos = [t for t in tokens if t.type not in [TokenType.WHITESPACE, TokenType.EOF]]
         
         if len(tokens_validos) == 1 and tokens_validos[0].type == TokenType.STRING:
-            print(f"  ✓ STRING: '{tokens_validos[0].value}'")
+            print(f"  [OK] STRING: '{tokens_validos[0].value}'")
         else:
-            print(f"  ✗ ERRO: {[str(t) for t in tokens_validos]}")
+            print(f"  [ERRO] {[str(t) for t in tokens_validos]}")
         print()
 
 def teste_comentarios():
@@ -56,9 +59,9 @@ def teste_comentarios():
         tokens_validos = [t for t in tokens if t.type not in [TokenType.WHITESPACE, TokenType.EOF]]
         
         if len(tokens_validos) == 1 and tokens_validos[0].type == TokenType.COMMENT:
-            print(f"  ✓ COMMENT: '{tokens_validos[0].value}'")
+            print(f"  [OK] COMMENT: '{tokens_validos[0].value}'")
         else:
-            print(f"  ✗ ERRO: {[str(t) for t in tokens_validos]}")
+            print(f"  [ERRO] {[str(t) for t in tokens_validos]}")
         print()
 
 def teste_operadores_compostos():
@@ -85,9 +88,9 @@ def teste_operadores_compostos():
         resultado = [f"{t.type.name}('{t.value}')" for t in tokens_validos]
         
         if resultado == esperado:
-            print(f"  ✓ CORRETO: {resultado}")
+            print(f"  [OK] CORRETO: {resultado}")
         else:
-            print(f"  ✗ ERRO: Esperado {esperado}, obtido {resultado}")
+            print(f"  [ERRO] Esperado {esperado}, obtido {resultado}")
         print()
 
 def teste_numeros():
@@ -115,9 +118,9 @@ def teste_numeros():
         tokens_validos = [t for t in tokens if t.type not in [TokenType.WHITESPACE, TokenType.EOF]]
         
         if len(tokens_validos) == 1 and tokens_validos[0].type == tipo_esperado:
-            print(f"  ✓ {tipo_esperado.name}: '{tokens_validos[0].value}'")
+            print(f"  [OK] {tipo_esperado.name}: '{tokens_validos[0].value}'")
         else:
-            print(f"  ✗ ERRO: {[str(t) for t in tokens_validos]}")
+            print(f"  [ERRO] {[str(t) for t in tokens_validos]}")
         print()
 
 def teste_identificadores():
@@ -145,9 +148,9 @@ def teste_identificadores():
         tokens_validos = [t for t in tokens if t.type not in [TokenType.WHITESPACE, TokenType.EOF]]
         
         if len(tokens_validos) == 1 and tokens_validos[0].type == tipo_esperado:
-            print(f"  ✓ {tipo_esperado.name}: '{tokens_validos[0].value}'")
+            print(f"  [OK] {tipo_esperado.name}: '{tokens_validos[0].value}'")
         else:
-            print(f"  ✗ ERRO: {[str(t) for t in tokens_validos]}")
+            print(f"  [ERRO] {[str(t) for t in tokens_validos]}")
         print()
 
 def teste_codigo_completo():

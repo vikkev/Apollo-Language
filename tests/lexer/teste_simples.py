@@ -4,6 +4,9 @@ Teste simples e focado do analisador léxico Apollo.
 Demonstra as funcionalidades principais sem loops infinitos.
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'lexer'))
 from apollo_lexer import ApolloLexer, TokenType
 
 def teste_simples():
@@ -31,7 +34,7 @@ def teste_simples():
         
         for token in tokens:
             if token.type != TokenType.WHITESPACE and token.type != TokenType.EOF:
-                print(f"  → {token.type.name}: '{token.value}'")
+                print(f"  -> {token.type.name}: '{token.value}'")
         print()
 
 def teste_codigo_completo():

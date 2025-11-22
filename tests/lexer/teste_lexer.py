@@ -4,6 +4,9 @@ Script de teste para o analisador léxico Apollo melhorado.
 Demonstra o princípio do match mais longo, bufferização e estrutura de tokens.
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'lexer'))
 from apollo_lexer import ApolloLexer, TokenType, LexerInterface
 
 def test_lexer():
@@ -92,7 +95,7 @@ def test_longest_match():
         
         for token in tokens:
             if token.type not in [TokenType.WHITESPACE, TokenType.EOF]:
-                print(f"  → {token.type.name}: '{token.value}'")
+                print(f"  -> {token.type.name}: '{token.value}'")
         print()
 
 def test_lexer_interface():
@@ -124,6 +127,9 @@ def demonstrar_bufferizacao():
     
     print("\n=== DEMONSTRAÇÃO DA BUFFERIZAÇÃO ===\n")
     
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'lexer'))
     from apollo_lexer import CircularBuffer
     
     buffer = CircularBuffer(size=5)
