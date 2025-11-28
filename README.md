@@ -2,7 +2,7 @@
 
 Linguagem de programação educacional em português com compilador completo.
 
-## 🚀 Uso Rápido
+##  Uso Rápido
 
 ```bash
 # Compilar exemplo
@@ -17,7 +17,7 @@ python tests/lexer/teste_completo.py
 python tests/lexer/teste_lexer.py
 ```
 
-## 📁 Estrutura
+##  Estrutura
 
 ```
 Apollo-Language/
@@ -30,7 +30,7 @@ Apollo-Language/
 └── docs/                    # Documentação
 ```
 
-## 💻 Exemplo
+## Exemplo
 
 ```apl
 algoritmo exemplo
@@ -44,19 +44,19 @@ algoritmo exemplo
 fim_algoritmo
 ```
 
-## 📚 Documentação
+##  Documentação
 
 - [Manual de Instalação](docs/MANUAL_INSTALACAO.md)
 - [Manual de Utilização](docs/MANUAL_UTILIZACAO.md)
 - [Gramática Formal](docs/gramatica_apollo.md)
 
-## ✅ Componentes
+##  Componentes
 
-- ✅ Analisador Léxico (AFDs)
-- ✅ Analisador Sintático (AST)
-- ✅ Analisador Semântico
-- ✅ Gerador de Código LLVM IR
+-  Analisador Léxico (AFDs)
+-  Analisador Sintático (AST)
+-  Analisador Semântico
+-  Gerador de Código LLVM IR
 
 ---
 
-**Status**: ✅ Completo e funcional
+**Status**:  Completo e funcional
