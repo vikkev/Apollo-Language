@@ -61,11 +61,11 @@ fim_algoritmo
     # Verifica se há tokens inválidos
     tokens_invalidos = [t for t in tokens if t.type == TokenType.INVALID]
     if tokens_invalidos:
-        print(f"\n⚠️  ERRO: {len(tokens_invalidos)} token(s) inválido(s) encontrado(s):")
+        print(f"\nERRO: {len(tokens_invalidos)} token(s) inválido(s) encontrado(s):")
         for token in tokens_invalidos:
             print(f"   '{token.value}' na linha {token.line}, coluna {token.column}")
     else:
-        print("\n✅ Análise léxica concluída com sucesso!")
+        print("\nAnálise léxica concluída com sucesso!")
     
     return tokens
 
@@ -167,11 +167,11 @@ def main():
         demonstrar_bufferizacao()
         
         print("\n" + "="*60)
-        print("🎉 TODOS OS TESTES CONCLUÍDOS COM SUCESSO!")
+        print("TODOS OS TESTES CONCLUÍDOS COM SUCESSO!")
         print("="*60)
         
     except Exception as e:
-        print(f"\n❌ ERRO durante a execução dos testes: {e}")
+        print(f"\nERRO durante a execução dos testes: {e}")
         import traceback
         traceback.print_exc()
 

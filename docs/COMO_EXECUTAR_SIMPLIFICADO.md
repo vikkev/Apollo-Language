@@ -1,20 +1,12 @@
-# 🚀 Como Executar um Programa Apollo
-
-## ⚠️ Importante
-
-O compilador Apollo **gera código LLVM IR**, mas **não executa** o programa. Para ver o programa rodando e digitar os números, você precisa compilar o LLVM IR para um executável.
-
-## 📋 Passo a Passo Completo
-
-# Como executar um programa Apollo (versão simples)
+# Como executar um programa Apollo (versão simplificada)
 
 Este guia mostra, passo a passo, como transformar um arquivo `.apl` em um executável e rodá-lo.
 
-Pré-requisitos
+## Pré-requisitos
 - Python 3.7+ (recomendado `python3`)
 - Opcional: LLVM/Clang para transformar o LLVM IR em executável
 
-1) Preparar o ambiente (recomendado)
+## 1) Preparar o ambiente
 
 Linux / macOS:
 ```bash
@@ -32,7 +24,7 @@ pip install -r requirements.txt
 
 Observação: você também pode executar `./scripts/setup.sh` que cria o `.venv` e instala dependências.
 
-2) Gerar o arquivo LLVM IR a partir do código Apollo
+## 2) Gerar o arquivo LLVM IR a partir do código Apollo
 
 ```bash
 python3 apollo_compiler.py examples/exemplo_simples.apl -o exemplo_simples.ll
@@ -40,7 +32,7 @@ python3 apollo_compiler.py examples/exemplo_simples.apl -o exemplo_simples.ll
 
 Isso cria `exemplo_simples.ll` (LLVM IR).
 
-3) (Opcional) Gerar executável a partir do `.ll` — requer Clang
+## 3) (Opcional) Gerar executável a partir do `.ll` — requer Clang
 
 Verifique se o `clang` está disponível:
 
@@ -67,7 +59,7 @@ llc -filetype=obj exemplo_simples.ll -o exemplo_simples.o
 clang exemplo_simples.o -o exemplo_simples
 ```
 
-4) Executar o programa gerado
+## 4) Executar o programa gerado
 
 Linux / macOS:
 ```bash
@@ -87,7 +79,7 @@ Digite o segundo número:
 A soma é: 42
 ```
 
-5) Ver o LLVM IR (se não quiser compilar)
+## 5) Ver o LLVM IR (se não quiser compilar)
 
 Linux / macOS:
 ```bash
@@ -99,7 +91,7 @@ Windows (PowerShell):
 Get-Content exemplo_simples.ll
 ```
 
-6) Rodar os testes/ exemplos de inspeção
+## 6) Rodar os testes/ exemplos de inspeção
 
 Scripts demonstrativos (executam exemplos do lexer/parser):
 ```bash
@@ -114,14 +106,13 @@ Se você instalou `pytest` no `.venv`, pode rodar:
 .venv/bin/pytest -q
 ```
 
-Solução de problemas rápida
+## Solução de problemas rápida
 - `Erro: Arquivo 'programa.apl' não encontrado`: verifique o caminho do arquivo.
 - `clang: command not found`: instale LLVM/Clang (ex.: `sudo apt install clang` no Ubuntu, Homebrew no macOS).
 - Permissão negada ao executar: rode `chmod +x exemplo_simples` no Linux/macOS.
 
-Observações finais
+## Observações finais
 - O compilador Apollo gera LLVM IR. Para executar, é necessário converter esse IR em um executável com ferramentas como `clang`.
 - Use `-v` no `apollo_compiler.py` para ver detalhes da compilação (tokens, AST, análise semântica).
 
-Se quiser, eu aplico também uma versão de prova para iniciantes em `docs/COMO_EXECUTAR_SIMPLIFICADO.md` ou atualizo o `README.md` com links para este guia.
-
+Se quiser, consulte também o README ou outros manuais em `docs/` para mais detalhes.

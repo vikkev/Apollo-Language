@@ -23,7 +23,7 @@ class LLVMGenerator:
         self.variables: Dict[str, str] = {}  # nome -> registro LLVM
         self.strings: Dict[str, str] = {}  # valor -> nome global
     
-    def generate(self, program: Program) -> str:
+    def generate(self, program: Program, symbol_table: Optional[Dict[str, Type]] = None) -> str:
         """Gera código LLVM IR para o programa"""
         self.code = []
         self.variable_counter = 0
@@ -31,6 +31,8 @@ class LLVMGenerator:
         self.string_counter = 0
         self.variables = {}
         self.strings = {}
+        # tabela de tipos das variáveis (nome -> Type)
+        self.symbol_table: Dict[str, Type] = symbol_table or {}
         
         # Cabeçalho
         self.code.append("; Código LLVM IR gerado para Apollo")
@@ -124,7 +126,8 @@ class LLVMGenerator:
         
         if decl.initial_value:
             value_reg = self.visit_expression(decl.initial_value)
-            self.code.append(f"  store {self.get_llvm_type(decl.var_type)} {value_reg}, {self.get_llvm_type(decl.var_type)}* {reg}")
+            llvm_type = self.get_llvm_type(decl.var_type)
+            self.code.append(f"  store {llvm_type} {value_reg}, {llvm_type}* {reg}")
     
     def visit_assignment(self, assign: Assignment):
         """Visita uma atribuição"""
@@ -132,7 +135,10 @@ class LLVMGenerator:
             # Variável não declarada, cria automaticamente (para compatibilidade)
             reg = self.new_register()
             self.variables[assign.variable] = reg
-            self.code.append(f"  {reg} = alloca i32")
+            # usa tipo da tabela de símbolos se disponível
+            var_type = self.symbol_table.get(assign.variable, Type.INTEGER)
+            llvm_type = self.get_llvm_type(var_type)
+            self.code.append(f"  {reg} = alloca {llvm_type}")
         
         var_reg = self.variables[assign.variable]
         
@@ -152,9 +158,10 @@ class LLVMGenerator:
                 return
         
         value_reg = self.visit_expression(assign.value)
-        
-        # Assume i32 por padrão (pode ser melhorado com análise de tipo)
-        self.code.append(f"  store i32 {value_reg}, i32* {var_reg}")
+        # determina tipo da variável a partir da tabela de símbolos
+        var_type = self.symbol_table.get(assign.variable, Type.INTEGER)
+        llvm_type = self.get_llvm_type(var_type)
+        self.code.append(f"  store {llvm_type} {value_reg}, {llvm_type}* {var_reg}")
     
     def visit_if_statement(self, stmt: IfStatement):
         """Visita um comando if"""
@@ -164,6 +171,7 @@ class LLVMGenerator:
         end_label = self.new_label()
         
         # Branch
+        # cond_reg deve ser i1
         self.code.append(f"  br i1 {cond_reg}, label %{then_label}, label %{else_label if stmt.else_block else end_label}")
         
         # Then block
@@ -264,6 +272,7 @@ class LLVMGenerator:
         if isinstance(expr, IntegerLiteral):
             return str(expr.value)
         elif isinstance(expr, RealLiteral):
+            # Representação literal para double
             return str(expr.value)
         elif isinstance(expr, StringLiteral):
             str_global = self.get_string_global(expr.value)
@@ -276,15 +285,28 @@ class LLVMGenerator:
             return self.visit_function_call(expr)
         elif isinstance(expr, Variable):
             if expr.name not in self.variables:
-                # Variável não declarada, cria automaticamente
+                # Variável não declarada, cria automaticamente com tipo da tabela
                 reg = self.new_register()
                 self.variables[expr.name] = reg
-                self.code.append(f"  {reg} = alloca i32")
-                self.code.append(f"  store i32 0, i32* {reg}")
-            
+                var_type = self.symbol_table.get(expr.name, Type.INTEGER)
+                llvm_type = self.get_llvm_type(var_type)
+                self.code.append(f"  {reg} = alloca {llvm_type}")
+                # inicializa com zero de acordo com tipo
+                if var_type == Type.INTEGER:
+                    self.code.append(f"  store i32 0, i32* {reg}")
+                elif var_type == Type.REAL:
+                    self.code.append(f"  store double 0.0, double* {reg}")
+                elif var_type == Type.TEXT:
+                    self.code.append(f"  store i8* null, i8** {reg}")
+                elif var_type == Type.BOOLEAN:
+                    self.code.append(f"  store i1 false, i1* {reg}")
+
             var_reg = self.variables[expr.name]
+            # carrega de acordo com tipo
+            var_type = self.symbol_table.get(expr.name, Type.INTEGER)
+            llvm_type = self.get_llvm_type(var_type)
             load_reg = self.new_register()
-            self.code.append(f"  {load_reg} = load i32, i32* {var_reg}")
+            self.code.append(f"  {load_reg} = load {llvm_type}, {llvm_type}* {var_reg}")
             return load_reg
         elif isinstance(expr, BinaryOp):
             return self.visit_binary_op(expr)
@@ -308,44 +330,81 @@ class LLVMGenerator:
         """Visita uma operação binária"""
         left_reg = self.visit_expression(op.left)
         right_reg = self.visit_expression(op.right)
-        result_reg = self.new_register()
-        
-        if op.operator == "+":
-            self.code.append(f"  {result_reg} = add i32 {left_reg}, {right_reg}")
-        elif op.operator == "-":
-            self.code.append(f"  {result_reg} = sub i32 {left_reg}, {right_reg}")
-        elif op.operator == "*":
-            self.code.append(f"  {result_reg} = mul i32 {left_reg}, {right_reg}")
-        elif op.operator == "/":
-            self.code.append(f"  {result_reg} = sdiv i32 {left_reg}, {right_reg}")
-        elif op.operator == "==":
+        # determina tipos das expressões
+        left_type = self.get_expression_type(op.left)
+        right_type = self.get_expression_type(op.right)
+
+        # se algum for real, promovemos para real
+        is_real = left_type == Type.REAL or right_type == Type.REAL
+
+        # Operadores aritméticos
+        if op.operator in ("+", "-", "*", "/"):
+            result_reg = self.new_register()
+            if is_real:
+                if op.operator == "+":
+                    self.code.append(f"  {result_reg} = fadd double {left_reg}, {right_reg}")
+                elif op.operator == "-":
+                    self.code.append(f"  {result_reg} = fsub double {left_reg}, {right_reg}")
+                elif op.operator == "*":
+                    self.code.append(f"  {result_reg} = fmul double {left_reg}, {right_reg}")
+                elif op.operator == "/":
+                    self.code.append(f"  {result_reg} = fdiv double {left_reg}, {right_reg}")
+            else:
+                if op.operator == "+":
+                    self.code.append(f"  {result_reg} = add i32 {left_reg}, {right_reg}")
+                elif op.operator == "-":
+                    self.code.append(f"  {result_reg} = sub i32 {left_reg}, {right_reg}")
+                elif op.operator == "*":
+                    self.code.append(f"  {result_reg} = mul i32 {left_reg}, {right_reg}")
+                elif op.operator == "/":
+                    self.code.append(f"  {result_reg} = sdiv i32 {left_reg}, {right_reg}")
+            return result_reg
+
+        # Operadores relacionais e igualdade
+        if op.operator in ("==", "!=", "<", ">", "<=", ">="):
             cmp_reg = self.new_register()
-            self.code.append(f"  {cmp_reg} = icmp eq i32 {left_reg}, {right_reg}")
-            self.code.append(f"  {result_reg} = zext i1 {cmp_reg} to i32")
-        elif op.operator == "!=":
-            cmp_reg = self.new_register()
-            self.code.append(f"  {cmp_reg} = icmp ne i32 {left_reg}, {right_reg}")
-            self.code.append(f"  {result_reg} = zext i1 {cmp_reg} to i32")
-        elif op.operator == "<":
-            cmp_reg = self.new_register()
-            self.code.append(f"  {cmp_reg} = icmp slt i32 {left_reg}, {right_reg}")
-            self.code.append(f"  {result_reg} = zext i1 {cmp_reg} to i32")
-        elif op.operator == ">":
-            cmp_reg = self.new_register()
-            self.code.append(f"  {cmp_reg} = icmp sgt i32 {left_reg}, {right_reg}")
-            self.code.append(f"  {result_reg} = zext i1 {cmp_reg} to i32")
-        elif op.operator == "<=":
-            cmp_reg = self.new_register()
-            self.code.append(f"  {cmp_reg} = icmp sle i32 {left_reg}, {right_reg}")
-            self.code.append(f"  {result_reg} = zext i1 {cmp_reg} to i32")
-        elif op.operator == ">=":
-            cmp_reg = self.new_register()
-            self.code.append(f"  {cmp_reg} = icmp sge i32 {left_reg}, {right_reg}")
-            self.code.append(f"  {result_reg} = zext i1 {cmp_reg} to i32")
-        else:
-            result_reg = left_reg
-        
-        return result_reg
+            # floats
+            if is_real:
+                if op.operator == "==":
+                    self.code.append(f"  {cmp_reg} = fcmp oeq double {left_reg}, {right_reg}")
+                elif op.operator == "!=":
+                    self.code.append(f"  {cmp_reg} = fcmp one double {left_reg}, {right_reg}")
+                elif op.operator == "<":
+                    self.code.append(f"  {cmp_reg} = fcmp olt double {left_reg}, {right_reg}")
+                elif op.operator == ">":
+                    self.code.append(f"  {cmp_reg} = fcmp ogt double {left_reg}, {right_reg}")
+                elif op.operator == "<=":
+                    self.code.append(f"  {cmp_reg} = fcmp ole double {left_reg}, {right_reg}")
+                elif op.operator == ">=":
+                    self.code.append(f"  {cmp_reg} = fcmp oge double {left_reg}, {right_reg}")
+            else:
+                if op.operator == "==":
+                    self.code.append(f"  {cmp_reg} = icmp eq i32 {left_reg}, {right_reg}")
+                elif op.operator == "!=":
+                    self.code.append(f"  {cmp_reg} = icmp ne i32 {left_reg}, {right_reg}")
+                elif op.operator == "<":
+                    self.code.append(f"  {cmp_reg} = icmp slt i32 {left_reg}, {right_reg}")
+                elif op.operator == ">":
+                    self.code.append(f"  {cmp_reg} = icmp sgt i32 {left_reg}, {right_reg}")
+                elif op.operator == "<=":
+                    self.code.append(f"  {cmp_reg} = icmp sle i32 {left_reg}, {right_reg}")
+                elif op.operator == ">=":
+                    self.code.append(f"  {cmp_reg} = icmp sge i32 {left_reg}, {right_reg}")
+            # cmp_reg é i1
+            return cmp_reg
+
+        # Operadores lógicos
+        if op.operator in ("&&", "||"):
+            # espera i1 operands
+            result_reg = self.new_register()
+            if op.operator == "&&":
+                self.code.append(f"  {result_reg} = and i1 {left_reg}, {right_reg}")
+            else:
+                self.code.append(f"  {result_reg} = or i1 {left_reg}, {right_reg}")
+            return result_reg
+
+        # fallback
+        return left_reg
     
     def visit_unary_op(self, op: UnaryOp) -> str:
         """Visita uma operação unária"""

@@ -460,7 +460,9 @@ class LexerInterface:
         """Retorna o próximo token"""
         if self.token_buffer:
             return self.token_buffer.popleft()
-        return self.lexer.get_next_token()
+        # Use consume_token para avançar corretamente o stream e evitar
+        # retornar o mesmo token repetidamente (causando loop infinito).
+        return self.lexer.consume_token()
     
     def peek_token(self, offset: int = 0) -> Token:
         """Retorna o token na posição offset sem consumir"""

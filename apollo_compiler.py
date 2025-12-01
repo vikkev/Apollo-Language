@@ -77,7 +77,11 @@ def compile_apollo(source_code: str, output_file: Optional[str] = None, verbose:
             print("\n=== Geração de Código LLVM IR ===")
         
         codegen = LLVMGenerator()
-        llvm_ir = codegen.generate(ast)
+        # passa a tabela de símbolos global do analisador semântico para o gerador
+        symbol_table = {}
+        if semantic_analyzer.current_scope:
+            symbol_table = {name: sym.var_type for name, sym in semantic_analyzer.current_scope.symbols.items()}
+        llvm_ir = codegen.generate(ast, symbol_table)
         
         # 5. Saída
         if output_file:

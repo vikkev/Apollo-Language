@@ -231,8 +231,42 @@ class ApolloParser:
         if self.match(TokenType.SYMBOL, ";"):
             self.advance()
             return None
-        
+        # Bloco explícito: { ... }
+        if self.match(TokenType.SYMBOL, "{"):
+            return self.parse_block()
+
         return None
+
+    def parse_block(self) -> Block:
+        """Parseia um bloco delimitado por `{` `}` e retorna um `Block`"""
+        if not self.match(TokenType.SYMBOL, "{"):
+            raise ParseError("Esperado '{' para início de bloco", self.current_token or Token(TokenType.EOF, "", 0, 0))
+
+        line = self.current_token.line
+        column = self.current_token.column
+        # consome '{'
+        self.advance()
+
+        statements: List[ASTNode] = []
+
+        # Continua parseando statements até encontrar '}' ou EOF
+        while self.current_token and not self.match(TokenType.SYMBOL, "}"):
+            if self.current_token.type == TokenType.EOF:
+                raise ParseError("Fim de arquivo dentro de bloco (esperado '}')", self.current_token)
+
+            stmt = self.parse_statement()
+            if stmt:
+                statements.append(stmt)
+            else:
+                # Se parse_statement não consumiu token, avançar para evitar loop infinito
+                # Isto evita travamentos em casos de tokens inesperados dentro do bloco
+                if self.current_token and self.current_token.type != TokenType.EOF:
+                    self.advance()
+
+        # espera '}'
+        self.expect(TokenType.SYMBOL, "}")
+
+        return Block(statements, line, column)
     
     def parse_assignment(self) -> Assignment:
         """Assignment ::= IDENT = Expression ;"""
